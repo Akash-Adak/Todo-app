@@ -28,3 +28,10 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+
+k8s/**
+deploy.sh
+k8s-deploy.sh
+quick-commands-check.sh
+.github
