@@ -1,24 +1,12 @@
-version: '3.8'
+
 
 services:
   todo-app:
     build:
       context: .
-      dockerfile: Dockerfile
+    image: akta2910/todo-app:v1.01.01
     ports:
       - "3000:80"
     container_name: vue-todo-app
     restart: unless-stopped
 
-  # Optional: Add a development service
-  todo-app-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    ports:
-      - "5173:5173"
-    container_name: vue-todo-app-dev
-    volumes:
-      - .:/app
-      - /app/node_modules
-    restart: unless-stopped
