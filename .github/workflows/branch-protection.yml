@@ -1,0 +1,27 @@
+name: Branch Protection Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  branch-protection:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Check branch protection rules
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: protection } = await github.rest.repos.getBranchProtection({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            branch: context.payload.pull_request.base.ref
+          });
+          
+          console.log('Branch protection rules:', protection);
+          
+          // Check if required status checks are configured
+          if (protection.required_status_checks) {
+            console.log('Required status checks:', protection.required_status_checks.contexts);
+          }
