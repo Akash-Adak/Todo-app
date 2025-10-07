@@ -1,0 +1,53 @@
+name: Main CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  K8S_NAMESPACE: todo-app
+
+jobs:
+  test-build:
+    uses: ./.github/workflows/reusable-test-build.yml
+    
+  security-scan:
+    uses: ./.github/workflows/reusable-security-scan.yml
+    
+  docker-build-push:
+    needs: [test-build, security-scan]
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/reusable-docker-build-push.yml
+    with:
+      registry: ${{ env.REGISTRY }}
+      image-name: ${{ env.IMAGE_NAME }}
+    
+  deploy:
+    needs: docker-build-push
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      k8s-namespace: ${{ env.K8S_NAMESPACE }}
+      image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+    
+  notify:
+    needs: [test-build, docker-build-push, deploy]
+    if: always()
+    uses: ./.github/workflows/reusable-notify.yml
+    with:
+      workflow-status: ${{ job.status }}
+      branch: ${{ github.ref }}
+
+
+  # Auto-merge trigger
+  trigger-auto-merge:
+    needs: [test-build, security-scan, lint]
+    if: github.event_name == 'pull_request' && always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger auto-merge check
+        run: echo "All checks passed - PR can be auto-merged"

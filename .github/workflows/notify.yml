@@ -1,0 +1,33 @@
+name: Reusable Notifications
+
+on:
+  workflow_call:
+    inputs:
+      workflow-status:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Send Slack notification
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ inputs.workflow-status }}
+        text: Deployment of Vue Todo App ${{ inputs.workflow-status }}
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      if: always() && inputs.branch == 'refs/heads/main'
+
+    - name: Send Discord notification
+      uses: sarisia/actions-status-discord@v1
+      with:
+        webhook: ${{ secrets.DISCORD_WEBHOOK }}
+        status: ${{ inputs.workflow-status }}
+        title: "Vue Todo App Deployment"
+        description: "Deployment to production ${{ inputs.workflow-status }}"
+      if: always() && inputs.branch == 'refs/heads/main'
