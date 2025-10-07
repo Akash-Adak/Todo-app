@@ -13,7 +13,6 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
-    
     steps:
     - name: Send Slack notification
       uses: 8398a7/action-slack@v3
@@ -21,7 +20,7 @@ jobs:
         status: ${{ inputs.workflow-status }}
         text: Deployment of Vue Todo App ${{ inputs.workflow-status }}
         webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-      if: always() && inputs.branch == 'refs/heads/main'
+      if: always() && (inputs.branch == 'refs/heads/master' || inputs.branch == 'refs/heads/main')
 
     - name: Send Discord notification
       uses: sarisia/actions-status-discord@v1
@@ -30,4 +29,4 @@ jobs:
         status: ${{ inputs.workflow-status }}
         title: "Vue Todo App Deployment"
         description: "Deployment to production ${{ inputs.workflow-status }}"
-      if: always() && inputs.branch == 'refs/heads/main'
+      if: always() && (inputs.branch == 'refs/heads/master' || inputs.branch == 'refs/heads/main')
