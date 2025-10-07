@@ -20,7 +20,7 @@ jobs:
     
   docker-build-push:
     needs: [test-build, security-scan]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     uses: ./.github/workflows/reusable-docker-build-push.yml
     with:
       registry: ${{ env.REGISTRY }}
@@ -28,7 +28,7 @@ jobs:
     
   deploy:
     needs: docker-build-push
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     uses: ./.github/workflows/reusable-deploy.yml
     with:
       k8s-namespace: ${{ env.K8S_NAMESPACE }}

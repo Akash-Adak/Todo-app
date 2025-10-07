@@ -9,9 +9,10 @@ on:
     types: [completed]
   status: {}
 
+
 env:
   MERGE_METHOD: squash
-  BRANCHES_ALLOWED: main,develop
+  BRANCHES_ALLOWED: master,develop
 
 jobs:
   auto-merge:
