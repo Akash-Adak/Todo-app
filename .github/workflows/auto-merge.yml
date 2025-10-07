@@ -9,7 +9,6 @@ on:
     types: [completed]
   status: {}
 
-
 env:
   MERGE_METHOD: squash
   BRANCHES_ALLOWED: master,develop
@@ -19,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event.pull_request.draft == false &&
-      contains(env.BRANCHES_ALLOWED, github.event.pull_request.base.ref)
-    
+      (github.event.pull_request.base.ref == 'master' || github.event.pull_request.base.ref == 'develop')
+
     steps:
     - name: Auto-merge Pull Request
       uses: pascalgn/merge-action@v0.1.6
@@ -69,4 +68,4 @@ jobs:
             repo: context.repo.repo,
             issue_number: context.issue.number,
             labels: ['auto-merge']
-          });
+          })
