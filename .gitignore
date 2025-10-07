@@ -27,9 +27,7 @@ coverage
 *.sln
 *.sw?
 
-*.tsbuildinfo
-
-
+*.tsbui
 
 deploy.sh
 
