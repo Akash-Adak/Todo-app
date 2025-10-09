@@ -19,7 +19,7 @@ jobs:
   docker-build-push:
     needs: [test-build, security-scan]
     if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
-    uses: ./.github/workflows/reusable-docker-build-push.yml
+    uses: ./.github/workflows/docker-push.yml
     secrets: inherit
     with:
       registry: docker.io
