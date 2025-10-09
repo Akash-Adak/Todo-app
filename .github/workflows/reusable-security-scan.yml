@@ -14,7 +14,7 @@ jobs:
 
       # 2️⃣ Run Snyk security scan (requires SNYK_TOKEN secret)
       - name: Run Snyk security scan
-        uses: snyk/actions/node@v2
+        uses: snyk/actions/node@master   # Use @master, not v2
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
