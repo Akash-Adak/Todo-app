@@ -3,14 +3,12 @@ name: Require Checks Before Merge
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
-  check_suite:
-    types: [completed]
 
 jobs:
   check-status:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
-    
+
     steps:
       - name: Check required statuses
         id: status-check
@@ -18,20 +16,26 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const requiredChecks = ['test-build', 'security-scan', 'lint'];
+
+            // Get the PR SHA
+            const prSha = context.payload.pull_request.head.sha;
+
+            // Get check runs
             const { data: checks } = await github.rest.checks.listForRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: context.payload.pull_request.head.sha
+              ref: prSha
             });
-            
+
+            // Get combined statuses
             const { data: statuses } = await github.rest.repos.getCombinedStatusForRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: context.payload.pull_request.head.sha
+              ref: prSha
             });
-            
-            const requiredChecks = ['test-build', 'security-scan', 'lint'];
-            
+
+            // Verify all required checks passed
             const allChecksPassed = requiredChecks.every(check => {
               const checkRun = checks.check_runs.find(cr => cr.name === check);
               const status = statuses.statuses.find(s => s.context === check);
@@ -39,7 +43,7 @@ jobs:
                      (status && status.state === 'success');
             });
 
-            return allChecksPassed ? 'true' : 'false';
+            core.setOutput('result', allChecksPassed ? 'true' : 'false');
 
       - name: Add ready-to-merge label
         if: steps.status-check.outputs.result == 'true'
