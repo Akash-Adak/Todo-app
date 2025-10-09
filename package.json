@@ -10,7 +10,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "echo \"No tests defined\" && exit 0"
+    "test": "echo \"No tests defined\" && exit 0",
+    "audit": "npm audit --audit-level=high"
   },
   "dependencies": {
     "lucide-vue-next": "^0.544.0",
