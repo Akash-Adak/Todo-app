@@ -23,6 +23,7 @@ spec:
       containers:
       - name: todo-app
         image: akta2910/todo-app:v1.01.01
+
         ports:
         - containerPort: 80
         resources:
