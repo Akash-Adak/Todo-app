@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   packages: write
+  security-events: write
 jobs:
   # 1️⃣ Test & Build
   test-build:
