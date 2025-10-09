@@ -4,47 +4,52 @@ on:
   push:
     branches: [ master, develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, develop ]
 
 jobs:
+  # 1️⃣ Test & Build
   test-build:
     uses: ./.github/workflows/reusable-test-build.yml
 
+  # 2️⃣ Security Scan
   security-scan:
     uses: ./.github/workflows/reusable-security-scan.yml
 
- docker-build-push:
-  needs: [test-build, security-scan]
-  if: github.ref == 'refs/heads/master'
-  uses: ./.github/workflows/reusable-docker-build-push.yml
-  secrets: inherit
-  with:
-    registry: ghcr.io
-    image-name: ${{ github.repository }}
+  # 3️⃣ Docker Build & Push
+  docker-build-push:
+    needs: [test-build, security-scan]
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
+    uses: ./.github/workflows/reusable-docker-build-push.yml
+    secrets: inherit
+    with:
+      registry: docker.io
+      image-name: akta2910/todo-app
 
-deploy:
-  needs: docker-build-push
-  if: github.ref == 'refs/heads/master'
-  uses: ./.github/workflows/reusable-deploy.yml
-  secrets: inherit
-  with:
-    k8s-namespace: todo-app
-    image: ghcr.io/${{ github.repository }}:latest
+  # 4️⃣ Deploy to Kubernetes
+  deploy:
+    needs: docker-build-push
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
+    uses: ./.github/workflows/reusable-deploy.yml
+    secrets: inherit
+    with:
+      k8s-namespace: todo-app
+      image: docker.io/akta2910/todo-app:latest
 
-notify:
-  needs: [test-build, docker-build-push, deploy]
-  if: always()
-  uses: ./.github/workflows/reusable-notify.yml
-  secrets: inherit
-  with:
-    workflow-status: ${{ needs.deploy.result || needs.docker-build-push.result || needs.test-build.result || 'success' }}
-    branch: ${{ github.ref }}
+  # 5️⃣ Notifications
+  notify:
+    needs: [test-build, docker-build-push, deploy]
+    if: always()
+    uses: ./.github/workflows/reusable-notify.yml
+    secrets: inherit
+    with:
+      workflow-status: ${{ needs.deploy.conclusion || needs.docker-build-push.conclusion || needs.test-build.conclusion || 'success' }}
+      branch: ${{ github.ref }}
 
-  # Auto-merge trigger
+  # 6️⃣ Auto-merge PRs
   trigger-auto-merge:
     needs: [test-build, security-scan]
-    if: github.event_name == 'pull_request' && always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    if: github.event_name == 'pull_request' && always() && !contains(needs.*.conclusion, 'failure') && !contains(needs.*.conclusion, 'cancelled')
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger auto-merge check
+      - name: Auto-merge check
         run: echo "All checks passed - PR can be auto-merged"

@@ -1,0 +1,81 @@
+name: Reusable Deploy to Kubernetes
+
+on:
+  workflow_call:
+    inputs:
+      k8s-namespace:
+        required: true
+        type: string
+      image:
+        required: true
+        type: string
+      deployment-name:
+        required: false
+        type: string
+        default: todo-app
+      container-name:
+        required: false
+        type: string
+        default: todo-app
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      # 1️⃣ Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2️⃣ Download build artifacts (optional)
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-files
+          path: dist
+
+      # 3️⃣ Set up kubectl (Minikube / Kind / Cloud)
+      - name: Set up kubectl
+        if: ${{ secrets.KUBECONFIG }}
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > kubeconfig
+          export KUBECONFIG=$PWD/kubeconfig
+          kubectl version --client
+
+      - name: Verify local Minikube / Kind
+        if: ${{ !secrets.KUBECONFIG }}
+        run: |
+          # Install Minikube CLI if not exists
+          curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+          sudo install minikube-linux-amd64 /usr/local/bin/minikube
+          minikube start --driver=docker
+          kubectl cluster-info
+          kubectl get nodes
+
+      # 4️⃣ Create namespace if not exists
+      - name: Create namespace
+        run: |
+          kubectl get ns ${{ inputs.k8s-namespace }} || kubectl create ns ${{ inputs.k8s-namespace }}
+
+      # 5️⃣ Deploy / update deployment
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl set image deployment/${{ inputs.deployment-name }} \
+            ${{ inputs.container-name }}=${{ inputs.image }} \
+            -n ${{ inputs.k8s-namespace }} --record || \
+          kubectl create deployment ${{ inputs.deployment-name }} \
+            --image=${{ inputs.image }} -n ${{ inputs.k8s-namespace }}
+
+          # Wait for rollout to complete
+          kubectl rollout status deployment/${{ inputs.deployment-name }} -n ${{ inputs.k8s-namespace }} --timeout=300s
+
+      # 6️⃣ Verify deployment
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n ${{ inputs.k8s-namespace }}
+          kubectl get services -n ${{ inputs.k8s-namespace }}
+          kubectl get ingress -n ${{ inputs.k8s-namespace }}
