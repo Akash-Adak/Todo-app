@@ -25,15 +25,6 @@ jobs:
       registry: docker.io
       image-name: akta2910/todo-app
 
-  # 4️⃣ Deploy to Kubernetes
-  deploy:
-    needs: docker-build-push
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
-    uses: ./.github/workflows/reusable-deploy.yml
-    secrets: inherit
-    with:
-      k8s-namespace: todo-app
-      image: docker.io/akta2910/todo-app:latest
 
   # 5️⃣ Notifications
   notify:
