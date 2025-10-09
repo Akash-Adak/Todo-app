@@ -1,0 +1,48 @@
+name: Reusable Security Scan
+
+on:
+  workflow_call:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1.5️⃣ Verify SNYK_TOKEN is set
+      - name: Verify Snyk token exists
+        run: |
+          if [ -z "${SNYK_TOKEN}" ]; then
+            echo "❌ SNYK_TOKEN is empty! Make sure it is added in repo secrets."
+            exit 1
+          else
+            echo "✅ SNYK_TOKEN is set correctly."
+          fi
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # 2️⃣ Run Snyk security scan (requires SNYK_TOKEN secret)
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master   # Use @master, reliable version
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+      # 3️⃣ Run Trivy vulnerability scanner (free, no token needed)
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      # 4️⃣ Upload Trivy scan results to GitHub
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
