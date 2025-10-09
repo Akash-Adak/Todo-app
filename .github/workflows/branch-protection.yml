@@ -2,12 +2,12 @@ name: Branch Protection Check
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
   pull-requests: write
-  administration: read  # Needed to read branch protection settings
+  administration: write  # Needed to read branch protection
 
 jobs:
   branch-protection:
@@ -31,13 +31,9 @@ jobs:
             core.info(`✅ Branch protection rules for '${baseBranch}':`);
             core.info(JSON.stringify(protection, null, 2));
 
-            if (protection.required_status_checks) {
+            if (protection.required_status_checks && protection.required_status_checks.contexts.length > 0) {
               const checks = protection.required_status_checks.contexts;
-              if (checks.length > 0) {
-                core.info(`🔒 Required status checks: ${checks.join(', ')}`);
-              } else {
-                core.warning('⚠️ No required status checks configured!');
-              }
+              core.info(`🔒 Required status checks: ${checks.join(', ')}`);
             } else {
               core.warning('⚠️ Branch does not have required status checks enabled!');
             }
@@ -46,7 +42,7 @@ jobs:
             if (error.status === 404) {
               core.warning('⚠️ Branch protection is not enabled on this branch.');
             } else if (error.status === 403) {
-              core.warning('⚠️ Missing permissions to access branch protection settings. You may need "administration: read" permission.');
+              core.warning('⚠️ Missing permissions to access branch protection. Use a token with admin/repo rights.');
             } else {
               core.setFailed(`❌ Failed to fetch branch protection: ${error.message}`);
             }
