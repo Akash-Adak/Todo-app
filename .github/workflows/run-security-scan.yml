@@ -1,0 +1,13 @@
+name: Run Security Scan
+
+on:
+  push:
+    branches: [ master ]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  call-security-scan:
+    uses: ./.github/workflows/reusable-security-scan.yml
