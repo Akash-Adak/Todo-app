@@ -50,7 +50,7 @@ jobs:
               repo: context.repo.repo,
               pull_number
             });
-            pr = retry.data; // update entire PR object
+            pr = retry.data;
             retries--;
           }
 
@@ -79,17 +79,25 @@ jobs:
             labels: [process.env.AUTO_MERGE_LABEL]
           });
 
-    # 3️⃣ Perform Auto-Merge
+    # 3️⃣ Merge PR using GitHub API
     - name: Auto-merge Pull Request
       if: ${{ steps.check-mergeable.outputs.result == 'true' }}
-      uses: pascalgn/merge-action@v0.1.6
+      uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        merge-method: ${{ env.MERGE_METHOD }}
-        merge-labels: ${{ env.AUTO_MERGE_LABEL }}
-        merge-forks: false
-        merge-commit-message: |
-          Auto-merged PR #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}
-        merge-remove-branch: true
-        merge-retries: "3"
-        merge-retry-sleep: "10000"
+        script: |
+          const pull_number = context.issue.number;
+          core.info(`Merging PR #${pull_number} using method "${process.env.MERGE_METHOD}"...`);
+          try {
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number,
+              merge_method: process.env.MERGE_METHOD,
+              commit_title: `Auto-merged PR #${pull_number} - ${context.payload.pull_request.title}`,
+              commit_message: context.payload.pull_request.body || ""
+            });
+            core.info(`✅ PR #${pull_number} successfully merged.`);
+          } catch (error) {
+            core.warning(`⚠️ Failed to merge PR #${pull_number}: ${error.message}`);
+          }
