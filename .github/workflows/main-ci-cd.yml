@@ -26,15 +26,6 @@ jobs:
       image-name: akta2910/todo-app
 
 
-  # 5️⃣ Notifications
-  notify:
-    needs: [test-build, docker-build-push, deploy]
-    if: always()
-    uses: ./.github/workflows/reusable-notify.yml
-    secrets: inherit
-    with:
-      workflow-status: ${{ needs.deploy.conclusion || needs.docker-build-push.conclusion || needs.test-build.conclusion || 'success' }}
-      branch: ${{ github.ref }}
 
   # 6️⃣ Auto-merge PRs
   trigger-auto-merge:
