@@ -8,35 +8,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repository
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 2️⃣ Install Node.js and dependencies
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
-      # 3️⃣ Run npm audit for Node.js dependency vulnerabilities
-      - name: Run npm audit
-        run: npm audit --audit-level=high
+      - run: npm audit --audit-level=high
 
-      # 4️⃣ Run Trivy for filesystem vulnerabilities (works on any repo, no token)
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      - uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
 
-      # 5️⃣ Upload Trivy scan results to GitHub
-      - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v2
+      - name: Upload Trivy SARIF results
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'

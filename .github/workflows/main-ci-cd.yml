@@ -16,7 +16,7 @@ jobs:
 
   # 2️⃣ Security Scan
   security-scan:
-    uses: ./.github/workflows/reusable-security-scan.yml
+    uses: ./.github/workflows/run-security-scan.yml
 
   # 3️⃣ Docker Build & Push
   docker-build-push:
