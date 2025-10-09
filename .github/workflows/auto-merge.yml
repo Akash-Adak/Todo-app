@@ -9,63 +9,83 @@ on:
     types: [completed]
   status: {}
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
 env:
   MERGE_METHOD: squash
-  BRANCHES_ALLOWED: master,develop
 
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
-    if: |
+    if: >
       github.event.pull_request.draft == false &&
       (github.event.pull_request.base.ref == 'master' || github.event.pull_request.base.ref == 'develop')
 
     steps:
-    - name: Auto-merge Pull Request
-      uses: pascalgn/merge-action@v0.1.6
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        merge-method: ${{ env.MERGE_METHOD }}
-        merge-filter-author: ""
-        merge-labels: "auto-merge"
-        merge-forks: false
-        merge-commit-message: |
-          Auto-merge: #{issue.title} (#{issue.number})
-          
-          {issue.body}
-        merge-remove-branch: true
-        merge-retries: "3"
-        merge-retry-sleep: "10000"
-
     - name: Check if PR is mergeable
       id: check-mergeable
       uses: actions/github-script@v7
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
+          const pull_number = context.issue.number;
           const { data: pr } = await github.rest.pulls.get({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            pull_number: context.issue.number
+            pull_number
           });
-          
-          // Check if PR is mergeable
+
+          // Sometimes GitHub returns mergeable=null; wait a bit and retry
+          let retries = 3;
+          while (pr.mergeable === null && retries > 0) {
+            core.info('Waiting for GitHub to calculate mergeability...');
+            await new Promise(r => setTimeout(r, 5000));
+            const retry = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number
+            });
+            pr.mergeable = retry.data.mergeable;
+            pr.mergeable_state = retry.data.mergeable_state;
+            retries--;
+          }
+
           if (pr.mergeable && pr.mergeable_state === 'clean') {
-            console.log('PR is mergeable');
-            return true;
+            core.info('✅ PR is mergeable.');
+            return 'true';
           } else {
-            console.log('PR is not mergeable. State:', pr.mergeable_state);
-            return false;
+            core.warning(`⚠️ PR is not mergeable. State: ${pr.mergeable_state}`);
+            return 'false';
           }
         result-encoding: string
 
-    - name: Add merge label if conditions met
-      if: steps.check-mergeable.outputs.result == 'true'
+    - name: Add merge label if PR is clean
+      if: ${{ steps.check-mergeable.outputs.result == 'true' }}
       uses: actions/github-script@v7
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
+          const pull_number = context.issue.number;
+          core.info('Adding label "auto-merge"...');
           await github.rest.issues.addLabels({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            issue_number: context.issue.number,
+            issue_number: pull_number,
             labels: ['auto-merge']
-          })
+          });
+
+    - name: Auto-merge Pull Request
+      if: ${{ steps.check-mergeable.outputs.result == 'true' }}
+      uses: pascalgn/merge-action@v0.1.6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        merge-method: ${{ env.MERGE_METHOD }}
+        merge-labels: "auto-merge"
+        merge-forks: false
+        merge-commit-message: "Auto-merged PR #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}"
+        merge-remove-branch: true
+        merge-retries: "3"
+        merge-retry-sleep: "10000"
