@@ -2,42 +2,40 @@ name: Reusable Security Scan
 
 on:
   workflow_call:
-    secrets:
-      SNYK_TOKEN:
-        required: true
 
 jobs:
   security-scan:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Verify Snyk token exists
-        run: |
-          if [ -z "${SNYK_TOKEN}" ]; then
-            echo "❌ SNYK_TOKEN is empty! Make sure it is added in repo secrets."
-            exit 1
-          else
-            echo "✅ SNYK_TOKEN is set correctly."
-          fi
-
-      - name: Run Snyk security scan
-        uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      # 2️⃣ Install Node.js and dependencies
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          args: --severity-threshold=high
+          node-version: '20'
+          cache: 'npm'
 
+      - name: Install dependencies
+        run: npm ci
+
+      # 3️⃣ Run npm audit for Node.js dependency vulnerabilities
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+
+      # 4️⃣ Run Trivy for filesystem vulnerabilities (works on any repo, no token)
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
+          scan-type: fs
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
 
+      # 5️⃣ Upload Trivy scan results to GitHub
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v2
         with:
