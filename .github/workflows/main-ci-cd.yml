@@ -37,4 +37,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Auto-merge check
+
         run: echo "All checks passed - PR can be auto-merged"
+

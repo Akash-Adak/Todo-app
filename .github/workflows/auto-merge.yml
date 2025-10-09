@@ -100,4 +100,7 @@ jobs:
             core.info(`✅ PR #${pull_number} successfully merged.`);
           } catch (error) {
             core.warning(`⚠️ Failed to merge PR #${pull_number}: ${error.message}`);
+
+
           }
+
