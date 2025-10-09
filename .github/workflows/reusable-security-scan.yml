@@ -8,16 +8,19 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      # 1️⃣ Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Run Snyk security scan (requires SNYK_TOKEN secret)
       - name: Run Snyk security scan
-        uses: snyk/actions/node@master   # Fixed version
+        uses: snyk/actions/node@v3
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high
 
+      # 3️⃣ Run Trivy vulnerability scanner (free, no token needed)
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -26,6 +29,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
 
+      # 4️⃣ Upload Trivy scan results to GitHub
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v2
         with:
